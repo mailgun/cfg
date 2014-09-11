@@ -1,0 +1,15 @@
+key: val
+
+list:
+  - val1
+  - val2
+
+env: {{.Env.SOME_ENV_KEY}}
+
+bool: true
+
+builtin:
+  anotherkey: anothervalue
+  mandatory: onemorevalue
+  onemorebuiltin:
+    blah: blah
