@@ -79,7 +79,7 @@ func validateStruct(typ reflect.Type, val reflect.Value) error {
 			if err := validateStruct(val.Field(idx).Type(), val.Field(idx)); err != nil {
 				return err
 			}
-		} else if field.Type.Kind() == reflect.Bool || field.Type.Kind() == reflect.Int { // no way to tell if boolean field was provided or not
+		} else if field.Type.Kind() == reflect.Bool || TypeIsNumeric(field.Type.Kind()) { // no way to tell if boolean field was provided or not
 			continue
 		} else {
 			if field.Tag.Get("config") != "optional" {
@@ -91,4 +91,18 @@ func validateStruct(typ reflect.Type, val reflect.Value) error {
 		}
 	}
 	return nil
+}
+
+var NumericTypes = []reflect.Kind{reflect.Int,
+	reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+	reflect.Float32, reflect.Float64}
+
+func TypeIsNumeric(typ reflect.Kind) bool {
+	for _, numericType := range NumericTypes {
+		if typ == numericType {
+			return true
+		}
+	}
+	return false
 }

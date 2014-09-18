@@ -6,3 +6,5 @@ builtin:
   mandatory: onemorevalue
   onemorebuiltin:
     blah: blah
+
+number: 42

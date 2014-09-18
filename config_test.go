@@ -25,6 +25,7 @@ type Config struct {
 			Blah string
 		}
 	}
+	Number int32
 }
 
 func (s *ConfigSuite) TestConfigOk(c *C) {
