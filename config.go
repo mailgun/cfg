@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/template"
 
-	"launchpad.net/goyaml"
+	"github.com/go-yaml/yaml"
 )
 
 func LoadConfig(configPath string, configStruct interface{}) error {
@@ -24,7 +24,7 @@ func LoadConfig(configPath string, configStruct interface{}) error {
 		return err
 	}
 
-	if err = goyaml.Unmarshal(bytes, configStruct); err != nil {
+	if err = yaml.Unmarshal(bytes, configStruct); err != nil {
 		return err
 	}
 
