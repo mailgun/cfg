@@ -15,3 +15,10 @@ builtin:
     blah: blah
 
 number: 42
+
+ptrstruct:
+  ptrblah: blah
+  ptroptional: optional
+
+ptroptional:
+  ptrblah: blah

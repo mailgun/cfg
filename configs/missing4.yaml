@@ -2,7 +2,10 @@ key: val
 
 env: {{.Env.SOME_ENV_KEY}}
 
+bool: true
+
 builtin:
+  anotherkey: anothervalue
   mandatory: onemorevalue
   onemorebuiltin:
     blah: blah
@@ -11,3 +14,8 @@ number: 42
 
 ptrstruct:
   ptrblah: blah
+  ptroptional: optional
+
+ptroptional:
+  ptrfoo: blah
+

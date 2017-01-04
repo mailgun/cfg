@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 )
 
 func TestConfig(t *testing.T) { TestingT(t) }
@@ -12,6 +12,20 @@ func TestConfig(t *testing.T) { TestingT(t) }
 type ConfigSuite struct{}
 
 var _ = Suite(&ConfigSuite{})
+
+type PtrStruct struct {
+	PtrBlah *string
+	PtrOptional *string `config:"optional"`
+}
+
+type PtrOptional struct {
+	PtrBlah *string
+}
+
+type MissingBoolean struct {
+	Optional  *bool
+	Mandatory *bool
+}
 
 type Config struct {
 	Key     string
@@ -25,6 +39,8 @@ type Config struct {
 			Blah string
 		}
 	}
+	PtrStruct *PtrStruct
+	PtrOptional *PtrOptional `config:"optional"`
 	Number int32
 }
 
@@ -42,13 +58,17 @@ func (s *ConfigSuite) TestConfigOk(c *C) {
 	c.Assert(config.Builtin.AnotherKey, Equals, "anothervalue")
 	c.Assert(config.Builtin.Mandatory, Equals, "onemorevalue")
 	c.Assert(config.Builtin.OneMoreBuiltin.Blah, Equals, "blah")
+	c.Assert(*config.PtrStruct.PtrBlah, Equals, "blah")
+	c.Assert(*config.PtrStruct.PtrOptional, Equals, "optional")
+	c.Assert(*config.PtrOptional.PtrBlah, Equals, "blah")
 }
 
 func (s *ConfigSuite) TestConfigMissingRequired(c *C) {
 	config := Config{}
 
 	err := LoadConfig("configs/missing1.yaml", &config)
-	c.Assert(err.Error(), Equals, "Missing required config field: Key")
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, "Missing required config field: Key of type string")
 }
 
 func (s *ConfigSuite) TestConfigMissingOptional(c *C) {
@@ -62,5 +82,22 @@ func (s *ConfigSuite) TestConfigMissingRequiredInBuiltin(c *C) {
 	config := Config{}
 
 	err := LoadConfig("configs/missing2.yaml", &config)
-	c.Assert(err.Error(), Equals, "Missing required config field: Mandatory")
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, "Missing required config field: Builtin.Mandatory of type string")
+}
+
+func (s *ConfigSuite) TestConfigOptionalPtr(c *C) {
+	config := Config{}
+
+	err := LoadConfig("configs/missing4.yaml", &config)
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, "Missing required config field: PtrOptional.PtrBlah of type *string")
+}
+
+func (s *ConfigSuite) TestMissingBoolean(c *C) {
+	config := MissingBoolean{}
+
+	err := LoadConfig("configs/missing5.yaml", &config)
+	c.Assert(err, NotNil)
+	c.Assert(err.Error(), Equals, "Missing required config field: Mandatory of type *bool")
 }
