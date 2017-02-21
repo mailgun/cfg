@@ -66,43 +66,67 @@ func substitute(in []byte) ([]byte, error) {
 	return buffer.Bytes(), nil
 }
 
-func validate(configStruct interface{}) error {
-	return validateStruct(
-		reflect.TypeOf(configStruct).Elem(),
-		reflect.ValueOf(configStruct).Elem())
+type InValid struct {
+	Name  string
+	Type  string
 }
 
-func validateStruct(typ reflect.Type, val reflect.Value) error {
-	for idx := 0; idx < val.NumField(); idx++ {
-		field := typ.Field(idx)
-		if field.Type.Kind() == reflect.Struct {
-			if err := validateStruct(val.Field(idx).Type(), val.Field(idx)); err != nil {
-				return err
-			}
-		} else if field.Type.Kind() == reflect.Bool || TypeIsNumeric(field.Type.Kind()) { // no way to tell if boolean field was provided or not
-			continue
-		} else {
-			if field.Tag.Get("config") != "optional" {
-				if val.Field(idx).Len() == 0 {
-					return errors.New(
-						fmt.Sprintf("Missing required config field: %v", field.Name))
-				}
-			}
-		}
+func validate(object interface{}) error {
+	if valid := validateValue(object); valid != nil {
+		return errors.New(fmt.Sprintf("Missing required config field: %v of type %s", valid.Name, valid.Type))
 	}
 	return nil
 }
 
-var NumericTypes = []reflect.Kind{reflect.Int,
-	reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-	reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-	reflect.Float32, reflect.Float64}
+func validateValue(object interface{}) *InValid {
+	objType := reflect.TypeOf(object)
+	objValue := reflect.ValueOf(object)
+	// If object is a nil interface value, TypeOf returns nil.
+	if objType == nil {
+		// Don't validate nil interfaces
+		return nil
+	}
 
-func TypeIsNumeric(typ reflect.Kind) bool {
-	for _, numericType := range NumericTypes {
-		if typ == numericType {
-			return true
+	switch objType.Kind() {
+	case reflect.Ptr:
+		// If the ptr is nil
+		if objValue.IsNil() {
+			return &InValid{Type: objType.String()}
+		}
+		// De-reference the ptr and pass the object to validate
+		return validateValue(objValue.Elem().Interface())
+	case reflect.Struct:
+		for idx := 0; idx < objValue.NumField(); idx++ {
+			if valid := validateValue(objValue.Field(idx).Interface()); valid != nil {
+				field := objType.Field(idx)
+				// Capture sub struct names
+				if valid.Name != "" {
+					field.Name = field.Name + "." + valid.Name
+				}
+
+				// If our field is a pointer and it's pointing to an object
+				if field.Type.Kind() == reflect.Ptr && !objValue.Field(idx).IsNil() {
+					// The optional doesn't apply because our field does exist
+					// instead the de-referenced object failed validation
+					if field.Tag.Get("config") == "optional" {
+						return &InValid{Name: field.Name, Type: valid.Type}
+					}
+				}
+				// If the field is optional, don't invalidate
+				if field.Tag.Get("config") != "optional" {
+					return &InValid{Name: field.Name, Type: valid.Type}
+				}
+			}
+		}
+	// no way to tell if boolean or integer fields are provided or not
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64, reflect.Float32, reflect.Float64, reflect.Bool, reflect.Interface,
+		reflect.Func:
+		return nil
+	default:
+		if objValue.Len() == 0 {
+			return &InValid{Type: objType.Name()}
 		}
 	}
-	return false
+	return nil
 }
